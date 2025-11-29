@@ -3,9 +3,15 @@ import { useEpubReader } from "./hooks/useEpubReader";
 import { NavigationButtons } from "./components/NavigationButtons";
 import { StatusMessage } from "./components/StatusMessage";
 
+const DEFAULT_MANIFEST_BASE =
+  "https://publication-server.readium.org/webpub/Z3M6Ly9yZWFkaXVtLXBsYXlncm91bmQtZmlsZXMvZGVtby9tb2J5LWRpY2suZXB1Yg/";
+
 const Viewer: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const { navRef, title, isLoading, error } = useEpubReader(containerRef);
+  const { navRef, title, isLoading, error } = useEpubReader(
+    containerRef,
+    DEFAULT_MANIFEST_BASE,
+  );
 
   return (
     <div className="relative flex h-dvh flex-col bg-gradient-to-b from-slate-100 to-slate-200">

@@ -8,14 +8,11 @@ import {
 import { Fetcher, HttpFetcher, Link, Manifest, Publication } from "@readium/shared";
 import Peripherals from "../peripherals";
 
-const MANIFEST_BASE =
-  "https://publication-server.readium.org/webpub/Z3M6Ly9yZWFkaXVtLXBsYXlncm91bmQtZmlsZXMvZGVtby9tb2J5LWRpY2suZXB1Yg/";
-
-const fetchPublication = async () => {
+const fetchPublication = async (manifestBase: string) => {
   const manifestLink = new Link({ href: "manifest.json" });
-  const fetcher: Fetcher = new HttpFetcher(undefined, MANIFEST_BASE);
+  const fetcher: Fetcher = new HttpFetcher(undefined, manifestBase);
   const fetched = fetcher.get(manifestLink);
-  const selfLink = (await fetched.link()).toURL(MANIFEST_BASE)!;
+  const selfLink = (await fetched.link()).toURL(manifestBase)!;
   const response = await fetched.readAsJSON();
   const manifestData =
     typeof response === "string" ? JSON.parse(response) : response;
@@ -58,7 +55,10 @@ const buildNavigatorListeners = (
   },
 });
 
-export const useEpubReader = (containerRef: React.RefObject<HTMLDivElement | null>) => {
+export const useEpubReader = (
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  manifestBase: string,
+) => {
   const navRef = useRef<EpubNavigator | null>(null);
   const [title, setTitle] = useState<string>("Loading…");
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -78,7 +78,7 @@ export const useEpubReader = (containerRef: React.RefObject<HTMLDivElement | nul
         }
 
         const { publication, title: publicationTitle } =
-          await fetchPublication();
+          await fetchPublication(manifestBase);
         if (disposed) return;
 
         setTitle(publicationTitle);
@@ -123,7 +123,7 @@ export const useEpubReader = (containerRef: React.RefObject<HTMLDivElement | nul
       }
       navRef.current = null;
     };
-  }, [containerRef]);
+  }, [containerRef, manifestBase]);
 
   return { navRef, title, isLoading, error };
 };
