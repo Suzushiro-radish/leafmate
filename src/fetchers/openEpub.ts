@@ -3,7 +3,7 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
-import { Manifest, Publication } from "@readium/shared";
+import { Locator, Manifest, Publication } from "@readium/shared";
 import { TauriFetcher } from "./TauriFetcher";
 
 interface OpenEpubResult {
@@ -30,6 +30,10 @@ export async function openEpub(path: string): Promise<Publication> {
     throw new Error("Failed to deserialize manifest");
   }
 
+  // Set self link (required for locator generation)
+  const selfLink = `tauri://epub/${id}/manifest.json`;
+  manifest.setSelfLink(selfLink);
+
   // Create fetcher for this publication
   const fetcher = new TauriFetcher(id);
 
@@ -38,6 +42,27 @@ export async function openEpub(path: string): Promise<Publication> {
     manifest,
     fetcher,
   });
+
+  // Generate positions from readingOrder
+  // Each item in readingOrder becomes a position with location metadata
+  const positions = manifestData.readingOrder.map((link: any, index: number) => ({
+    href: link.href,
+    type: link.type,
+    locations: {
+      position: index + 1,
+      progression: index / manifestData.readingOrder.length,
+    },
+  }));
+
+  // Create Locator instances for positions
+  const locators = positions.map((pos: any) => new Locator({
+    href: pos.href,
+    type: pos.type,
+    locations: pos.locations,
+  }));
+
+  // Set positions on Publication object for EpubNavigator
+  (publication as any).positions = locators;
 
   return publication;
 }

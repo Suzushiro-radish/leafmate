@@ -10,7 +10,7 @@ use thiserror::Error;
 use zip::ZipArchive;
 
 use super::manifest::{
-    Contributor, Link, Metadata, TocEntry, WebpubManifest,
+    Contributor, Link, Metadata, WebpubManifest,
 };
 
 /// Errors that can occur during EPUB parsing.

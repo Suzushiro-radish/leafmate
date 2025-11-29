@@ -74,12 +74,18 @@ export const useEpubNavigator = (
         peripherals = setupPeripherals(navRef);
         const listeners = buildNavigatorListeners(navRef, peripherals);
 
+        const positions = (publication as any).positions;
+
         navRef.current = new EpubNavigator(
           containerRef.current,
           publication,
           listeners,
+          positions,
         );
-        await navRef.current.load();
+        
+        // Create initial locator from first position
+        const initialLocator = positions?.[0];
+        await navRef.current.load(initialLocator);
 
         if (disposed) {
           (navRef.current as any)?.destroy?.();
