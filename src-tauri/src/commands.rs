@@ -40,8 +40,6 @@ pub struct OpenedPublication {
 pub struct OpenEpubResult {
     /// Unique identifier for this publication.
     pub id: String,
-    /// URL to the manifest (for use with custom protocol).
-    pub manifest_url: String,
 }
 
 /// Open an EPUB file and return its manifest URL.
@@ -73,10 +71,7 @@ pub fn open_epub(path: String, state: State<EpubState>) -> Result<OpenEpubResult
         );
     }
 
-    Ok(OpenEpubResult {
-        manifest_url: format!("epub://{}/manifest.json", id),
-        id,
-    })
+    Ok(OpenEpubResult { id })
 }
 
 /// Get the manifest JSON for a publication.
