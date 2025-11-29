@@ -4,91 +4,7 @@
 mod tests {
     use crate::epub::manifest::{Link, LocalizedString, Metadata, TocEntry, WebpubManifest};
     use crate::epub::parser::EpubParser;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
-    use zip::write::SimpleFileOptions;
-    use zip::ZipWriter;
-
-    /// Create a minimal valid EPUB file for testing.
-    fn create_test_epub() -> NamedTempFile {
-        let file = NamedTempFile::new().unwrap();
-        let mut zip = ZipWriter::new(file.reopen().unwrap());
-
-        let options = SimpleFileOptions::default();
-
-        // mimetype (must be first, uncompressed)
-        zip.start_file("mimetype", options).unwrap();
-        zip.write_all(b"application/epub+zip").unwrap();
-
-        // container.xml
-        zip.start_file("META-INF/container.xml", options).unwrap();
-        zip.write_all(
-            br#"<?xml version="1.0" encoding="UTF-8"?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
-  </rootfiles>
-</container>"#,
-        )
-        .unwrap();
-
-        // content.opf
-        zip.start_file("OEBPS/content.opf", options).unwrap();
-        zip.write_all(
-            br#"<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid">
-  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <dc:identifier id="uid">urn:uuid:12345678-1234-1234-1234-123456789012</dc:identifier>
-    <dc:title>Test Book</dc:title>
-    <dc:language>en</dc:language>
-    <dc:creator>Test Author</dc:creator>
-    <dc:publisher>Test Publisher</dc:publisher>
-    <meta property="dcterms:modified">2024-01-01T00:00:00Z</meta>
-  </metadata>
-  <manifest>
-    <item id="chapter1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
-    <item id="chapter2" href="chapter2.xhtml" media-type="application/xhtml+xml"/>
-    <item id="style" href="style.css" media-type="text/css"/>
-  </manifest>
-  <spine>
-    <itemref idref="chapter1"/>
-    <itemref idref="chapter2"/>
-  </spine>
-</package>"#,
-        )
-        .unwrap();
-
-        // chapter1.xhtml
-        zip.start_file("OEBPS/chapter1.xhtml", options).unwrap();
-        zip.write_all(
-            br#"<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><title>Chapter 1</title></head>
-<body><h1>Chapter 1</h1><p>Content</p></body>
-</html>"#,
-        )
-        .unwrap();
-
-        // chapter2.xhtml
-        zip.start_file("OEBPS/chapter2.xhtml", options).unwrap();
-        zip.write_all(
-            br#"<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><title>Chapter 2</title></head>
-<body><h1>Chapter 2</h1><p>More content</p></body>
-</html>"#,
-        )
-        .unwrap();
-
-        // style.css
-        zip.start_file("OEBPS/style.css", options).unwrap();
-        zip.write_all(b"body { font-family: serif; }").unwrap();
-
-        zip.finish().unwrap();
-        file
-    }
+    use crate::epub::test_fixtures::{create_invalid_epub_missing_container, create_test_epub};
 
     // =========================================================================
     // Parser tests
@@ -146,14 +62,7 @@ mod tests {
 
     #[test]
     fn test_invalid_epub_missing_container() {
-        let file = NamedTempFile::new().unwrap();
-        let mut zip = ZipWriter::new(file.reopen().unwrap());
-        let options = SimpleFileOptions::default();
-
-        zip.start_file("mimetype", options).unwrap();
-        zip.write_all(b"application/epub+zip").unwrap();
-        zip.finish().unwrap();
-
+        let file = create_invalid_epub_missing_container();
         let mut parser = EpubParser::open(file.path()).unwrap();
         assert!(parser.parse().is_err());
     }
