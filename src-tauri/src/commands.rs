@@ -54,10 +54,13 @@ pub fn open_epub(path: String, state: State<EpubState>) -> Result<OpenEpubResult
 
     // Parse EPUB
     let mut parser = EpubParser::open(&path_buf).map_err(|e| e.to_string())?;
-    let manifest = parser.parse().map_err(|e| e.to_string())?;
+    let mut manifest = parser.parse().map_err(|e| e.to_string())?;
 
     // Generate unique ID for this publication
     let id = generate_publication_id(&path_buf);
+
+    // Add self link to manifest
+    add_self_link(&mut manifest, &id);
 
     // Store in state
     {
@@ -107,6 +110,25 @@ pub fn close_epub(id: String, state: State<EpubState>) -> Result<(), String> {
     let mut publications = state.publications.lock().unwrap();
     publications.remove(&id);
     Ok(())
+}
+
+/// Add self link to manifest for proper locator generation.
+fn add_self_link(manifest: &mut WebpubManifest, id: &str) {
+    use crate::epub::manifest::Link;
+
+    // Remove any existing self links
+    manifest.links.retain(|link| {
+        link.rel.as_ref().map_or(true, |rels| !rels.contains(&"self".to_string()))
+    });
+
+    // Add new self link
+    manifest.links.push(Link {
+        href: format!("tauri://epub/{}/manifest.json", id),
+        media_type: Some("application/webpub+json".to_string()),
+        title: None,
+        rel: Some(vec!["self".to_string()]),
+        properties: None,
+    });
 }
 
 /// Generate a unique ID for a publication based on its path.
