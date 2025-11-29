@@ -9,7 +9,7 @@ use tauri::State;
 /// State to hold currently opened EPUB files.
 pub struct EpubState {
     /// Map of publication ID to parsed EPUB data.
-    publications: Mutex<HashMap<String, OpenedPublication>>,
+    pub publications: Mutex<HashMap<String, OpenedPublication>>,
 }
 
 impl EpubState {
@@ -44,7 +44,7 @@ pub struct OpenEpubResult {
 
 /// Open an EPUB file and return its manifest URL.
 #[tauri::command]
-pub fn open_epub(path: String, state: State<EpubState>) -> Result<OpenEpubResult, String> {
+pub fn open_epub(path: String, state: State<std::sync::Arc<EpubState>>) -> Result<OpenEpubResult, String> {
     let path_buf = PathBuf::from(&path);
 
     // Validate file exists
@@ -79,7 +79,7 @@ pub fn open_epub(path: String, state: State<EpubState>) -> Result<OpenEpubResult
 
 /// Get the manifest JSON for a publication.
 #[tauri::command]
-pub fn get_manifest(id: String, state: State<EpubState>) -> Result<String, String> {
+pub fn get_manifest(id: String, state: State<std::sync::Arc<EpubState>>) -> Result<String, String> {
     let publications = state.publications.lock().unwrap();
 
     let publication = publications
@@ -91,7 +91,7 @@ pub fn get_manifest(id: String, state: State<EpubState>) -> Result<String, Strin
 
 /// Get a resource from an opened EPUB.
 #[tauri::command]
-pub fn get_epub_resource(id: String, path: String, state: State<EpubState>) -> Result<Vec<u8>, String> {
+pub fn get_epub_resource(id: String, path: String, state: State<std::sync::Arc<EpubState>>) -> Result<Vec<u8>, String> {
     let publications = state.publications.lock().unwrap();
 
     let publication = publications
@@ -101,12 +101,19 @@ pub fn get_epub_resource(id: String, path: String, state: State<EpubState>) -> R
     // Re-open the EPUB to read the resource
     let mut parser = EpubParser::open(&publication.path).map_err(|e| e.to_string())?;
 
-    parser.read_file(&path).map_err(|e| e.to_string())
+    let mut data = parser.read_file(&path).map_err(|e| e.to_string())?;
+
+    // For HTML/XHTML files, inject a base tag to resolve relative paths
+    if path.ends_with(".html") || path.ends_with(".xhtml") {
+        data = inject_base_tag(data, &id, &path).map_err(|e| e.to_string())?;
+    }
+
+    Ok(data)
 }
 
 /// Close an opened EPUB publication.
 #[tauri::command]
-pub fn close_epub(id: String, state: State<EpubState>) -> Result<(), String> {
+pub fn close_epub(id: String, state: State<std::sync::Arc<EpubState>>) -> Result<(), String> {
     let mut publications = state.publications.lock().unwrap();
     publications.remove(&id);
     Ok(())
@@ -129,6 +136,33 @@ fn add_self_link(manifest: &mut WebpubManifest, id: &str) {
         rel: Some(vec!["self".to_string()]),
         properties: None,
     });
+}
+
+/// Inject a <base> tag into HTML/XHTML to enable relative path resolution.
+fn inject_base_tag(data: Vec<u8>, id: &str, path: &str) -> Result<Vec<u8>, String> {
+    let html = String::from_utf8(data).map_err(|e| format!("Invalid UTF-8: {}", e))?;
+    
+    // Calculate base URL: tauri://epub/{id}/path/to/directory/
+    let dir_path = path.rfind('/').map(|i| &path[..=i]).unwrap_or("");
+    let base_url = format!("tauri://epub/{}/{}", id, dir_path);
+    
+    // Inject base tag after <head>
+    let base_tag = format!("<base href=\"{}\"/>\n", base_url);
+    
+    let modified_html = if let Some(head_pos) = html.find("<head>") {
+        let insert_pos = head_pos + "<head>".len();
+        format!(
+            "{}{}{}",
+            &html[..insert_pos],
+            base_tag,
+            &html[insert_pos..]
+        )
+    } else {
+        // No <head> tag, return as-is
+        html
+    };
+    
+    Ok(modified_html.into_bytes())
 }
 
 /// Generate a unique ID for a publication based on its path.
