@@ -1,17 +1,42 @@
-import { useRef } from "react";
-import { useEpubReader } from "./hooks/useEpubReader";
+import { useRef, useState } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { Publication } from "@readium/shared";
+import { openEpub } from "./fetchers";
+import { useEpubNavigator } from "./hooks/useEpubNavigator";
 import { NavigationButtons } from "./components/NavigationButtons";
 import { StatusMessage } from "./components/StatusMessage";
 
-const DEFAULT_MANIFEST_BASE =
-  "https://publication-server.readium.org/webpub/Z3M6Ly9yZWFkaXVtLXBsYXlncm91bmQtZmlsZXMvZGVtby9tb2J5LWRpY2suZXB1Yg/";
-
 const Viewer: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const { navRef, title, isLoading, error } = useEpubReader(
+  const [publication, setPublication] = useState<Publication | null>(null);
+  const [title, setTitle] = useState<string>("No EPUB opened");
+  const { navRef, isLoading, error } = useEpubNavigator(
     containerRef,
-    DEFAULT_MANIFEST_BASE,
+    publication,
   );
+
+  const handleOpenFile = async () => {
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [{
+          name: "EPUB",
+          extensions: ["epub"],
+        }],
+      });
+
+      if (!selected) return;
+
+      const pub = await openEpub(selected);
+      setPublication(pub);
+      
+      // Get title from publication
+      const pubTitle = pub.metadata.title?.getTranslation?.("en") || "Untitled";
+      setTitle(pubTitle);
+    } catch (err) {
+      console.error("Failed to open EPUB:", err);
+    }
+  };
 
   return (
     <div className="relative flex h-dvh flex-col bg-gradient-to-b from-slate-100 to-slate-200">
@@ -23,6 +48,13 @@ const Viewer: React.FC = () => {
         <h3 className="text-sm font-semibold text-slate-700 sm:text-base">
           {title}
         </h3>
+        <button
+          type="button"
+          onClick={handleOpenFile}
+          className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 active:bg-blue-800"
+        >
+          Open EPUB
+        </button>
       </header>
 
       <div id="wrapper" className="relative min-h-0 flex-1 overflow-hidden">
