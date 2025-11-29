@@ -14,7 +14,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({ navRef }) 
         type="button"
         className={iconButtonClasses}
         title="Go left"
-        onClick={() => navRef.current?.goLeft(true)}
+        onClick={() => navRef.current?.goLeft(true, () => {})}
       >
         ←
       </button>
@@ -22,7 +22,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({ navRef }) 
         type="button"
         className={iconButtonClasses}
         title="Go right"
-        onClick={() => navRef.current?.goRight(true)}
+        onClick={() => navRef.current?.goRight(true, () => {})}
       >
         →
       </button>

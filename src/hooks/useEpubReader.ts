@@ -33,11 +33,11 @@ const fetchPublication = async (manifestBase: string) => {
 const setupPeripherals = (navRef: React.RefObject<EpubNavigator | null>) =>
   new Peripherals({
     moveTo: (direction) => {
-      if (direction === "right") navRef.current?.goRight(true);
-      else navRef.current?.goLeft(true);
+      if (direction === "right") navRef.current?.goRight(true, () => {});
+      else navRef.current?.goLeft(true, () => {});
     },
     goForward: () => {
-      navRef.current?.goForward(true);
+      navRef.current?.goForward(true, () => {});
     },
   });
 
@@ -53,6 +53,15 @@ const buildNavigatorListeners = (
     );
     peripherals.observe(window);
   },
+  positionChanged: () => {},
+  tap: () => false,
+  click: () => false,
+  zoom: () => {},
+  miscPointer: () => {},
+  scroll: () => {},
+  customEvent: () => {},
+  handleLocator: () => false,
+  textSelected: () => {},
 });
 
 export const useEpubReader = (

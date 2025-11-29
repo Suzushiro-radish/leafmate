@@ -6,12 +6,14 @@ export interface PeripheralCallbacks {
 export default class Peripherals {
   private targets: EventTarget[] = [];
   private readonly callbacks: PeripheralCallbacks;
-  private readonly handleKeyUp = (e: KeyboardEvent) => {
-    if (e.code === "Space") this.callbacks.goForward();
+  private readonly handleKeyUp: EventListener = (e) => {
+    const keyEvent = e as KeyboardEvent;
+    if (keyEvent.code === "Space") this.callbacks.goForward();
   };
-  private readonly handleKeyDown = (e: KeyboardEvent) => {
-    if (e.code === "ArrowRight") this.callbacks.moveTo("right");
-    else if (e.code === "ArrowLeft") this.callbacks.moveTo("left");
+  private readonly handleKeyDown: EventListener = (e) => {
+    const keyEvent = e as KeyboardEvent;
+    if (keyEvent.code === "ArrowRight") this.callbacks.moveTo("right");
+    else if (keyEvent.code === "ArrowLeft") this.callbacks.moveTo("left");
   };
 
   constructor(callbacks: PeripheralCallbacks) {
