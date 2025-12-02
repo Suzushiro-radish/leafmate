@@ -19,17 +19,19 @@ const Viewer: React.FC = () => {
     try {
       const selected = await open({
         multiple: false,
-        filters: [{
-          name: "EPUB",
-          extensions: ["epub"],
-        }],
+        filters: [
+          {
+            name: "EPUB",
+            extensions: ["epub"],
+          },
+        ],
       });
 
       if (!selected) return;
 
       const pub = await openEpub(selected);
       setPublication(pub);
-      
+
       // Get title from publication
       const pubTitle = pub.metadata.title?.getTranslation?.("en") || "Untitled";
       setTitle(pubTitle);
@@ -39,7 +41,7 @@ const Viewer: React.FC = () => {
   };
 
   return (
-    <div className="relative flex h-dvh flex-col bg-gradient-to-b from-slate-100 to-slate-200">
+    <div className="relative flex h-dvh flex-col bg-linear-to-b from-slate-100 to-slate-200">
       <header
         id="top-bar"
         aria-label="Top Bar"
