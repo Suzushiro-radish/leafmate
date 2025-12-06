@@ -10,7 +10,7 @@ const Viewer: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [publication, setPublication] = useState<Publication | null>(null);
   const [title, setTitle] = useState<string>("No EPUB opened");
-  const { navRef, isLoading, error } = useEpubNavigator(
+  const { navRef, isLoading, error, getVisibleHtml } = useEpubNavigator(
     containerRef,
     publication,
   );
@@ -50,13 +50,26 @@ const Viewer: React.FC = () => {
         <h3 className="text-sm font-semibold text-slate-700 sm:text-base">
           {title}
         </h3>
-        <button
-          type="button"
-          onClick={handleOpenFile}
-          className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 active:bg-blue-800"
-        >
-          Open EPUB
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={async () => {
+              const payload = await getVisibleHtml();
+              console.log("Visible HTML payload:", payload);
+            }}
+            disabled={!publication}
+            className="rounded-md bg-slate-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+          >
+            Log visible HTML
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenFile}
+            className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 active:bg-blue-800"
+          >
+            Open EPUB
+          </button>
+        </div>
       </header>
 
       <div id="wrapper" className="relative min-h-0 flex-1 overflow-hidden">
